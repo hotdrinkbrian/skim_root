@@ -4,13 +4,26 @@ import copy
 import math
 from array import array
 from ROOT import gROOT, TFile, TTree, TObject, TH1, TH1F, AddressOf
+from timeit import default_timer as timer
+#start= timer()
+
 # Import objects (structs)
 #similar to root[0] bash: .L means load
-#gROOT.ProcessLine('.L /afs/desy.de/user/h/hezhiyua/private/git1/skim/Objects.h+')
-gROOT.ProcessLine('.L /home/brian/skimtest/Objects_m1.h+')
+gROOT.ProcessLine('.L /afs/desy.de/user/h/hezhiyua/private/git1/skim_root/Objects_m1.h+')
+#gROOT.ProcessLine('.L /home/brian/skimtest/Objects_m1.h+')
 from ROOT import JetType, JetTypeSmall
 
-args = '/home/brian/skimtest/'
+#args = '/home/brian/skimtest/'
+args = '/nfs/dust/cms/user/lbenato/RecoStudies_ntuples_v4/'
+args1 = '/afs/desy.de/user/h/hezhiyua/private/skimed_data/'
+
+#adjusted for different oldfile location
+fn = 'QCD_HT200to300_TuneCUETP8M1_13TeV-madgraphMLM-pythia8_small.root'
+path = args
+s = path + fn
+newFileName = 'QCD_HT200to300_TuneCUETP8M1_13TeV-madgraphMLM-pythia8_skimed.root'
+
+
 #jobs = []
 # Struct
 Jet1o = JetType()
@@ -46,7 +59,8 @@ def skim(name):
     
     print 'skimming file',oldFile.GetName(),'\tevents =',oldTree.GetEntries(),'\tweight =',oldTree.GetWeight()
 
-    newFile = TFile("Skim/"+name, "RECREATE")
+    #newFile = TFile("Skim/"+name, "RECREATE")
+    newFile = TFile('Skim/' + newFileName, "RECREATE")
     newFile.cd()
     newTree = TTree("tree44", "tree44")
     newTree.Branch( 'Jet1s', Jets1, 'pt/F:eta/F:chf/F:nhf/F:phf/F:elf/F:muf/F:chm/I:cm/I:nm/I:dR_q1/F:dR_q2/F:dR_q3/F:dR_q4/F' )
@@ -55,8 +69,14 @@ def skim(name):
     newTree.Branch( 'Jet4s', Jets4, 'pt/F:eta/F:chf/F:nhf/F:phf/F:elf/F:muf/F:chm/I:cm/I:nm/I:dR_q1/F:dR_q2/F:dR_q3/F:dR_q4/F' )
     # this attribute list must exactly match (the order of) the features in the header file!!!! 
 
+    ti = 50000
     #theweight = oldTree.GetWeight() 
     for i in range(  0 , oldTree.GetEntries()  ):    # why -1?
+        if i ==0:
+            start = timer()
+        elif i%ti == 2:
+            start = timer()
+
         oldTree.GetEntry(i) 
         # selections
         # Trigger
@@ -184,12 +204,33 @@ def skim(name):
             
         newTree.Fill()
 
+        if i%ti == 1 and i>ti:
+            end = timer() 
+            dt = end-start
+            print 'time left:' + str( int( ((oldTree.GetEntries()-i)/ti ) * dt ) ) + 's'
+
+
     print 'produced skimmed file',newFile.GetName(),'\tevents =',newTree.GetEntries(),'\tweight =',newTree.GetWeight()
     newFile.cd()
     newFile.Write()
     newFile.Close() 
     oldFile.Close()
 #-----------------------------------------------------------------------------------------------------------
+
+#=====================================================================================================
+os.chdir(args1)
+if not os.path.isdir('Skim'): os.mkdir('Skim')
+
+p = mp.Process(target=skim, args=(s,))
+p.start()
+#=====================================================================================================
+
+
+
+
+
+
+"""
 
 #=====================================================================================================
 subfiles = [i for i in os.listdir(args) if os.path.isfile(os.path.join(args, i)) and '.root' in i] 
@@ -202,15 +243,7 @@ for s in subfiles:
     p.start()
 #=====================================================================================================
 
-
-
-
-
-
-
-
-
-
+"""
 
 
 
