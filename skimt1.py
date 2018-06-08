@@ -18,10 +18,11 @@ args = '/nfs/dust/cms/user/lbenato/RecoStudies_ntuples_v4/'
 args1 = '/afs/desy.de/user/h/hezhiyua/private/skimed_data/'
 
 #adjusted for different oldfile location
-fn = 'QCD_HT200to300_TuneCUETP8M1_13TeV-madgraphMLM-pythia8_small.root'
+#fn = 'QCD_HT200to300_TuneCUETP8M1_13TeV-madgraphMLM-pythia8_small.root'
+fn = 'QCD_HT200to300_TuneCUETP8M1_13TeV-madgraphMLM-pythia8.root'
 path = args
 s = path + fn
-newFileName = 'QCD_HT200to300_TuneCUETP8M1_13TeV-madgraphMLM-pythia8_skimed.root'
+newFileName = 'QCD_HT200to300_TuneCUETP8M1_13TeV-madgraphMLM-pythia8_small_skimed.root'
 
 
 #jobs = []
@@ -69,7 +70,7 @@ def skim(name):
     newTree.Branch( 'Jet4s', Jets4, 'pt/F:eta/F:chf/F:nhf/F:phf/F:elf/F:muf/F:chm/I:cm/I:nm/I:dR_q1/F:dR_q2/F:dR_q3/F:dR_q4/F' )
     # this attribute list must exactly match (the order of) the features in the header file!!!! 
 
-    ti = 50000
+    ti = 80000
     #theweight = oldTree.GetWeight() 
     for i in range(  0 , oldTree.GetEntries()  ):    # why -1?
         if i ==0:
@@ -203,12 +204,17 @@ def skim(name):
             Jets4.dR_q4 = Jet4o.dR_q4 
             
         newTree.Fill()
-
+        
+        #########################################################  
         if i%ti == 1 and i>ti:
             end = timer() 
             dt = end-start
-            print 'time left:' + str( int( ((oldTree.GetEntries()-i)/ti ) * dt ) ) + 's'
-
+            tl = int( ((oldTree.GetEntries()-i)/ti ) * dt )
+            if tl > 60:
+                print 'time left: ' + str( tl/60 ) + 'min'
+            else: 
+                print 'time left: ' + str( tl ) + 's'
+        #########################################################
 
     print 'produced skimmed file',newFile.GetName(),'\tevents =',newTree.GetEntries(),'\tweight =',newTree.GetWeight()
     newFile.cd()
