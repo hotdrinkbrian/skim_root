@@ -1,4 +1,4 @@
-import os
+import os, sys
 import multiprocessing as mp
 import copy
 import math
@@ -19,11 +19,12 @@ args1 = '/afs/desy.de/user/h/hezhiyua/private/skimed_data/'
 
 #adjusted for different oldfile location
 #fn = 'QCD_HT200to300_TuneCUETP8M1_13TeV-madgraphMLM-pythia8_small.root'
+
 fn = 'QCD_HT200to300_TuneCUETP8M1_13TeV-madgraphMLM-pythia8.root'
+#fn = 'VBFH_HToSSTobbbb_MH-125_MS-40_ctauS-500_TuneCUETP8M1_13TeV-powheg-pythia8.root'
 path = args
 s = path + fn
-newFileName = 'QCD_HT200to300_TuneCUETP8M1_13TeV-madgraphMLM-pythia8_small_skimed.root'
-
+newFileName = fn.replace('.root','_skimed.root')
 
 #jobs = []
 # Struct
@@ -65,9 +66,9 @@ def skim(name):
     newFile.cd()
     newTree = TTree("tree44", "tree44")
     newTree.Branch( 'Jet1s', Jets1, 'pt/F:eta/F:chf/F:nhf/F:phf/F:elf/F:muf/F:chm/I:cm/I:nm/I:dR_q1/F:dR_q2/F:dR_q3/F:dR_q4/F' )
-    newTree.Branch( 'Jet2s', Jets2, 'pt/F:eta/F:chf/F:nhf/F:phf/F:elf/F:muf/F:chm/I:cm/I:nm/I:dR_q1/F:dR_q2/F:dR_q3/F:dR_q4/F' )
-    newTree.Branch( 'Jet3s', Jets3, 'pt/F:eta/F:chf/F:nhf/F:phf/F:elf/F:muf/F:chm/I:cm/I:nm/I:dR_q1/F:dR_q2/F:dR_q3/F:dR_q4/F' )
-    newTree.Branch( 'Jet4s', Jets4, 'pt/F:eta/F:chf/F:nhf/F:phf/F:elf/F:muf/F:chm/I:cm/I:nm/I:dR_q1/F:dR_q2/F:dR_q3/F:dR_q4/F' )
+    #newTree.Branch( 'Jet2s', Jets2, 'pt/F:eta/F:chf/F:nhf/F:phf/F:elf/F:muf/F:chm/I:cm/I:nm/I:dR_q1/F:dR_q2/F:dR_q3/F:dR_q4/F' )
+    #newTree.Branch( 'Jet3s', Jets3, 'pt/F:eta/F:chf/F:nhf/F:phf/F:elf/F:muf/F:chm/I:cm/I:nm/I:dR_q1/F:dR_q2/F:dR_q3/F:dR_q4/F' )
+    #newTree.Branch( 'Jet4s', Jets4, 'pt/F:eta/F:chf/F:nhf/F:phf/F:elf/F:muf/F:chm/I:cm/I:nm/I:dR_q1/F:dR_q2/F:dR_q3/F:dR_q4/F' )
     # this attribute list must exactly match (the order of) the features in the header file!!!! 
 
     ti = 80000
@@ -112,7 +113,10 @@ def skim(name):
             Jets1.dR_q2 = Jet1o.dR_q2
             Jets1.dR_q3 = Jet1o.dR_q3
             Jets1.dR_q4 = Jet1o.dR_q4
+            
+            newTree.Fill()
 
+        """
         if  Jet2o.pt>15 \
             and \
             (Jet2o.eta>-2.4 or Jet2o.eta<2.4) \
@@ -202,18 +206,27 @@ def skim(name):
             Jets4.dR_q2 = Jet4o.dR_q2
             Jets4.dR_q3 = Jet4o.dR_q3
             Jets4.dR_q4 = Jet4o.dR_q4 
-            
-        newTree.Fill()
+            """
+        #newTree.Fill()
         
         #########################################################  
         if i%ti == 1 and i>ti:
             end = timer() 
             dt = end-start
             tl = int( ((oldTree.GetEntries()-i)/ti ) * dt )
+            if i%2 == 0:
+                ss = '.'
+            else:
+                ss = '----'
+
             if tl > 60:
-                print 'time left: ' + str( tl/60 ) + 'min'
+                #print 'time left: ' + str( tl/60 ) + 'min'
+                sys.stdout.write("\r" + 'time left: ' + str( tl/60 ) + 'min' + ss)
+                sys.stdout.flush()
             else: 
-                print 'time left: ' + str( tl ) + 's'
+                #print 'time left: ' + str( tl ) + 's'
+                sys.stdout.write("\r" + 'time left: ' + str( tl/60 ) + 's')
+                sys.stdout.flush() 
         #########################################################
 
     print 'produced skimmed file',newFile.GetName(),'\tevents =',newTree.GetEntries(),'\tweight =',newTree.GetWeight()
