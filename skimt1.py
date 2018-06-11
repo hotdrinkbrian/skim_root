@@ -20,22 +20,73 @@ args1 = '/afs/desy.de/user/h/hezhiyua/private/skimed_data/'
 #adjusted for different oldfile location
 #fn = 'QCD_HT200to300_TuneCUETP8M1_13TeV-madgraphMLM-pythia8_small.root'
 
-fn = 'QCD_HT200to300_TuneCUETP8M1_13TeV-madgraphMLM-pythia8.root'
-#fn = 'VBFH_HToSSTobbbb_MH-125_MS-40_ctauS-500_TuneCUETP8M1_13TeV-powheg-pythia8.root'
+#fn = 'QCD_HT200to300_TuneCUETP8M1_13TeV-madgraphMLM-pythia8.root'
+fn = 'VBFH_HToSSTobbbb_MH-125_MS-40_ctauS-500_TuneCUETP8M1_13TeV-powheg-pythia8.root'
 path = args
 s = path + fn
 newFileName = fn.replace('.root','_skimed.root')
 
 #jobs = []
 # Struct
+Jets1 = JetTypeSmall() #will contain all jets
+"""
 Jet1o = JetType()
 Jet2o = JetType()
 Jet3o = JetType()
 Jet4o = JetType()
-Jets1 = JetTypeSmall()
-Jets2 = JetTypeSmall()
-Jets3 = JetTypeSmall()
-Jets4 = JetTypeSmall()
+"""
+
+#test dict
+num_of_jets = 8
+#--------------------------------
+Jet_old_dict = {}
+for j in range(num_of_jets):  
+    Jet_old_dict[j+1] = JetType()
+#--------------------------------
+
+#-------------------------------------
+cs = {}
+cs['pt_L'] = 'pt' + '>' + '15'
+cs['eta_L'] = 'eta' + '>' + '-2.4' 
+cs['eta_U'] = 'eta' + '<' + '2.4'
+#
+cs['dR_q1_U'] = 'dR_q1' + '<' + '0.4'
+cs['dR_q2_U'] = 'dR_q2' + '<' + '0.4'
+cs['dR_q3_U'] = 'dR_q3' + '<' + '0.4'
+cs['dR_q4_U'] = 'dR_q4' + '<' + '0.4'
+#
+cs['dR_q1_L'] = 'dR_q1' + '>' + '0.4'
+cs['dR_q2_L'] = 'dR_q2' + '>' + '0.4'
+cs['dR_q3_L'] = 'dR_q3' + '>' + '0.4'
+cs['dR_q4_L'] = 'dR_q4' + '>' + '0.4'
+#-------------------------------------
+
+#---------------------------------------------------------------------------------------------------------------------------------
+condition_str_dict = {}
+for j in range(num_of_jets):
+    prs = 'Jet_old_dict[' +str(j+1) + '].'
+    a = ' and '
+    o = ' or '
+    condition_str_dict[j+1] = '(' + prs + cs['pt_L'] + ')' +\
+                              a +\
+                              '(' + prs + cs['eta_L'] + a + prs + cs['eta_U'] + ')' +\
+                              a +\
+                              '(' +\
+                              '(' + prs + cs['dR_q1_U'] + a + prs + cs['dR_q2_L'] + a + prs + cs['dR_q3_L'] + a + prs + cs['dR_q4_L'] + ')' +\
+                              o +\
+                              '(' + prs + cs['dR_q1_L'] + a + prs + cs['dR_q2_U'] + a + prs + cs['dR_q3_L'] + a + prs + cs['dR_q4_L'] + ')' +\
+                              o +\
+                              '(' + prs + cs['dR_q1_L'] + a + prs + cs['dR_q2_L'] + a + prs + cs['dR_q3_U'] + a + prs + cs['dR_q4_L'] + ')' +\
+                              o +\
+                              '(' + prs + cs['dR_q1_L'] + a + prs + cs['dR_q2_L'] + a + prs + cs['dR_q3_L'] + a + prs + cs['dR_q4_U'] + ')' +\
+                              ')'
+    if 'QCD' in fn:
+        condition_str_dict[j+1] = '(' + prs + cs['pt_L'] + ')' +\
+                                  a +\
+                                  '(' + prs + cs['eta_L'] + a + prs + cs['eta_U'] + ')'
+
+print condition_str_dict[1]
+#---------------------------------------------------------------------------------------------------------------------------------
 
 """
 #------------------------------------------------------------------------------------------------------
@@ -47,28 +98,25 @@ for s in a:
     print aa
 #------------------------------------------------------------------------------------------------------
 """
+
 #-----------------------------------------------------------------------------------------------------------
 def skim(name):
     print 'filename:', name
 
     oldFile = TFile(name, "READ")
     oldTree = oldFile.Get("reconstruction/tree") 
-    # locate and register the Jet branches of the old ttree
-    oldTree.SetBranchAddress("Jet1", AddressOf(Jet1o, 'pt') ); 
-    oldTree.SetBranchAddress("Jet2", AddressOf(Jet2o, 'pt') );
-    oldTree.SetBranchAddress("Jet3", AddressOf(Jet3o, 'pt') );
-    oldTree.SetBranchAddress("Jet4", AddressOf(Jet4o, 'pt') );
-    
+    #locate and register the Jet branches of the old ttree
+    #oldTree.SetBranchAddress("Jet1", AddressOf(Jet1o, 'pt') ); 
+    for j in range(num_of_jets):
+        oldTree.SetBranchAddress( 'Jet' + str(j+1) , AddressOf(Jet_old_dict[j+1], 'pt') );
+
     print 'skimming file',oldFile.GetName(),'\tevents =',oldTree.GetEntries(),'\tweight =',oldTree.GetWeight()
 
-    #newFile = TFile("Skim/"+name, "RECREATE")
     newFile = TFile('Skim/' + newFileName, "RECREATE")
     newFile.cd()
     newTree = TTree("tree44", "tree44")
     newTree.Branch( 'Jet1s', Jets1, 'pt/F:eta/F:chf/F:nhf/F:phf/F:elf/F:muf/F:chm/I:cm/I:nm/I:dR_q1/F:dR_q2/F:dR_q3/F:dR_q4/F' )
     #newTree.Branch( 'Jet2s', Jets2, 'pt/F:eta/F:chf/F:nhf/F:phf/F:elf/F:muf/F:chm/I:cm/I:nm/I:dR_q1/F:dR_q2/F:dR_q3/F:dR_q4/F' )
-    #newTree.Branch( 'Jet3s', Jets3, 'pt/F:eta/F:chf/F:nhf/F:phf/F:elf/F:muf/F:chm/I:cm/I:nm/I:dR_q1/F:dR_q2/F:dR_q3/F:dR_q4/F' )
-    #newTree.Branch( 'Jet4s', Jets4, 'pt/F:eta/F:chf/F:nhf/F:phf/F:elf/F:muf/F:chm/I:cm/I:nm/I:dR_q1/F:dR_q2/F:dR_q3/F:dR_q4/F' )
     # this attribute list must exactly match (the order of) the features in the header file!!!! 
 
     ti = 80000
@@ -82,6 +130,7 @@ def skim(name):
         oldTree.GetEntry(i) 
         # selections
         # Trigger
+        """
         if  Jet1o.pt>15 \
             and \
             (Jet1o.eta>-2.4 or Jet1o.eta<2.4) \
@@ -115,116 +164,39 @@ def skim(name):
             Jets1.dR_q4 = Jet1o.dR_q4
             
             newTree.Fill()
+        """    
+        for j in range(num_of_jets):
+            if eval( condition_str_dict[j+1] ):
+                Jets1.pt    = Jet_old_dict[j+1].pt
+                Jets1.eta   = Jet_old_dict[j+1].eta
+                Jets1.phi   = Jet_old_dict[j+1].phi
+                Jets1.chf   = Jet_old_dict[j+1].chf
+                Jets1.nhf   = Jet_old_dict[j+1].nhf
+                Jets1.phf   = Jet_old_dict[j+1].phf
+                Jets1.elf   = Jet_old_dict[j+1].elf
+                Jets1.muf   = Jet_old_dict[j+1].muf     
+                Jets1.chm   = Jet_old_dict[j+1].chm
+                Jets1.cm    = Jet_old_dict[j+1].cm
+                Jets1.nm    = Jet_old_dict[j+1].nm
+                Jets1.dR_q1 = Jet_old_dict[j+1].dR_q1
+                Jets1.dR_q2 = Jet_old_dict[j+1].dR_q2
+                Jets1.dR_q3 = Jet_old_dict[j+1].dR_q3
+                Jets1.dR_q4 = Jet_old_dict[j+1].dR_q4    
+                newTree.Fill()
 
-        """
-        if  Jet2o.pt>15 \
-            and \
-            (Jet2o.eta>-2.4 or Jet2o.eta<2.4) \
-            and \
-            ( \
-            (Jet2o.dR_q1<0.4 and Jet2o.dR_q2>0.4 and Jet2o.dR_q3>0.4 and Jet2o.dR_q4>0.4) \
-            or \
-            (Jet2o.dR_q2<0.4 and Jet2o.dR_q1>0.4 and Jet2o.dR_q3>0.4 and Jet2o.dR_q4>0.4) \
-            or \
-            (Jet2o.dR_q3<0.4 and Jet2o.dR_q2>0.4 and Jet2o.dR_q1>0.4 and Jet2o.dR_q4>0.4) \
-            or \
-            (Jet2o.dR_q4<0.4 and Jet2o.dR_q2>0.4 and Jet2o.dR_q3>0.4 and Jet2o.dR_q1>0.4) \
-            ) \
-            : 
-            Jets2.pt    = Jet2o.pt
-            Jets2.eta   = Jet2o.eta
-            Jets2.phi   = Jet2o.phi
-            Jets2.chf   = Jet2o.chf
-            Jets2.nhf   = Jet2o.nhf
-            Jets2.phf   = Jet2o.phf
-            Jets2.elf   = Jet2o.elf
-            Jets2.muf   = Jet2o.muf
-            Jets2.chm   = Jet2o.chm
-            Jets2.cm    = Jet2o.cm
-            Jets2.nm    = Jet2o.nm
-            Jets2.dR_q1 = Jet2o.dR_q1
-            Jets2.dR_q2 = Jet2o.dR_q2
-            Jets2.dR_q3 = Jet2o.dR_q3
-            Jets2.dR_q4 = Jet2o.dR_q4
-             
-        if  Jet3o.pt>15 \
-            and \
-            (Jet3o.eta>-2.4 or Jet3o.eta<2.4) \
-            and \
-            ( \
-            (Jet3o.dR_q1<0.4 and Jet3o.dR_q2>0.4 and Jet3o.dR_q3>0.4 and Jet3o.dR_q4>0.4) \
-            or \
-            (Jet3o.dR_q2<0.4 and Jet3o.dR_q1>0.4 and Jet3o.dR_q3>0.4 and Jet3o.dR_q4>0.4) \
-            or \
-            (Jet3o.dR_q3<0.4 and Jet3o.dR_q2>0.4 and Jet3o.dR_q1>0.4 and Jet3o.dR_q4>0.4) \
-            or \
-            (Jet3o.dR_q4<0.4 and Jet3o.dR_q2>0.4 and Jet3o.dR_q3>0.4 and Jet3o.dR_q1>0.4) \
-            ) \
-            :           
-            Jets3.pt    = Jet3o.pt
-            Jets3.eta   = Jet3o.eta
-            Jets3.phi   = Jet3o.phi
-            Jets3.chf   = Jet3o.chf
-            Jets3.nhf   = Jet3o.nhf
-            Jets3.phf   = Jet3o.phf
-            Jets3.elf   = Jet3o.elf
-            Jets3.muf   = Jet3o.muf
-            Jets3.chm   = Jet3o.chm
-            Jets3.cm    = Jet3o.cm
-            Jets3.nm    = Jet3o.nm
-            Jets3.dR_q1 = Jet3o.dR_q1
-            Jets3.dR_q2 = Jet3o.dR_q2
-            Jets3.dR_q3 = Jet3o.dR_q3
-            Jets3.dR_q4 = Jet3o.dR_q4
-
-        if  Jet4o.pt>15 \
-            and \
-            (Jet4o.eta>-2.4 or Jet4o.eta<2.4) \
-            and \
-            ( \
-            (Jet4o.dR_q1<0.4 and Jet4o.dR_q2>0.4 and Jet4o.dR_q3>0.4 and Jet4o.dR_q4>0.4) \
-            or \
-            (Jet4o.dR_q2<0.4 and Jet4o.dR_q1>0.4 and Jet4o.dR_q3>0.4 and Jet4o.dR_q4>0.4) \
-            or \
-            (Jet4o.dR_q3<0.4 and Jet4o.dR_q2>0.4 and Jet4o.dR_q1>0.4 and Jet4o.dR_q4>0.4) \
-            or \
-            (Jet4o.dR_q4<0.4 and Jet4o.dR_q2>0.4 and Jet4o.dR_q3>0.4 and Jet4o.dR_q1>0.4) \
-            ) \
-            :      
-            Jets4.pt    = Jet4o.pt
-            Jets4.eta   = Jet4o.eta
-            Jets4.phi   = Jet4o.phi
-            Jets4.chf   = Jet4o.chf
-            Jets4.nhf   = Jet4o.nhf
-            Jets4.phf   = Jet4o.phf
-            Jets4.elf   = Jet4o.elf
-            Jets4.muf   = Jet4o.muf
-            Jets4.chm   = Jet4o.chm
-            Jets4.cm    = Jet4o.cm
-            Jets4.nm    = Jet4o.nm
-            Jets4.dR_q1 = Jet4o.dR_q1
-            Jets4.dR_q2 = Jet4o.dR_q2
-            Jets4.dR_q3 = Jet4o.dR_q3
-            Jets4.dR_q4 = Jet4o.dR_q4 
-            """
-        #newTree.Fill()
-        
         #########################################################  
+        if i%2 == 0:
+            ss = '.'
+        elif i%2 == 1:
+            ss = 'o' 
         if i%ti == 1 and i>ti:
             end = timer() 
             dt = end-start
             tl = int( ((oldTree.GetEntries()-i)/ti ) * dt )
-            if i%2 == 0:
-                ss = '.'
-            else:
-                ss = '----'
-
             if tl > 60:
-                #print 'time left: ' + str( tl/60 ) + 'min'
                 sys.stdout.write("\r" + 'time left: ' + str( tl/60 ) + 'min' + ss)
                 sys.stdout.flush()
             else: 
-                #print 'time left: ' + str( tl ) + 's'
                 sys.stdout.write("\r" + 'time left: ' + str( tl/60 ) + 's')
                 sys.stdout.flush() 
         #########################################################
