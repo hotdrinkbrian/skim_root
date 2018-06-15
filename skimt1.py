@@ -11,38 +11,61 @@ from timeit import default_timer as timer
 #similar to root[0] bash: .L means load
 gROOT.ProcessLine('.L /afs/desy.de/user/h/hezhiyua/private/git1/skim_root/Objects_m1.h+')
 #gROOT.ProcessLine('.L /home/brian/skimtest/Objects_m1.h+')
-from ROOT import JetType, JetTypeSmall
+from ROOT import JetType, JetTypeSmall, JetTypeSgn
 
 #args = '/home/brian/skimtest/'
-args = '/nfs/dust/cms/user/lbenato/RecoStudies_ntuples_v4/'
-args1 = '/afs/desy.de/user/h/hezhiyua/private/skimed_data/'
+#args = '/nfs/dust/cms/user/lbenato/RecoStudies_ntuples_v4/'
+args = '/afs/desy.de/user/h/hezhiyua/private/qcd_data/'
+#args = '/nfs/dust/cms/user/lbenato/RecoStudies_ntuples_v8/'
+#args1 = '/afs/desy.de/user/h/hezhiyua/private/skimed_data/'
+args1 = '/afs/desy.de/user/h/hezhiyua/private/working_datas/'
 
 #adjusted for different oldfile location
 #fn = 'QCD_HT200to300_TuneCUETP8M1_13TeV-madgraphMLM-pythia8_small.root'
-
 #fn = 'QCD_HT200to300_TuneCUETP8M1_13TeV-madgraphMLM-pythia8.root'
-fn = 'VBFH_HToSSTobbbb_MH-125_MS-40_ctauS-500_TuneCUETP8M1_13TeV-powheg-pythia8.root'
+#fn = 'VBFH_HToSSTobbbb_MH-125_MS-40_ctauS-500_TuneCUETP8M1_13TeV-powheg-pythia8.root'
+#fn = 'QCD_HT50To100.root'
+#fn = 'VBFH_HToSSTobbbb_MH-125_MS-40_ctauS-500_TuneCUETP8M1_13TeV-powheg-pythia8.root'
+fn = ''
 path = args
-s = path + fn
+s = fn
+#s = path + fn
 newFileName = fn.replace('.root','_skimed.root')
 
 #jobs = []
 # Struct
 Jets1 = JetTypeSmall() #will contain all jets
-"""
-Jet1o = JetType()
-Jet2o = JetType()
-Jet3o = JetType()
-Jet4o = JetType()
-"""
+
+NJT = 1 #branch using a structure with more features:1
+ct_dep = 0 #1 for ct dependence comparison
+cut_on = 0
+life_time = ['0','0p1','0p05','1','5','10','25','50','100','500','1000','2000','5000','10000']
+len_of_lt = len(life_time)
+
+if ct_dep == 0:
+    #channel = {'QCD':'QCD_HT100To200.root'}
+    channel = {'QCD':'QCD_HT50To100.root'}
+elif ct_dep == 1:
+    channel = {}
+    for lt in life_time:
+        channel['ct' + lt] = 'VBFH_HToSSTobbbb_MH-125_MS-40_ctauS-' + lt + '_TuneCUETP8M1_13TeV-powheg-pythia8.root'
+    #channel['QCD'] = '/QCD_HT100To200j1_skimed.root'
+
+
+
+
+
 
 #test dict
-num_of_jets = 8
+num_of_jets = 1 #4
+"""
 #--------------------------------
 Jet_old_dict = {}
-for j in range(num_of_jets):  
+for j in range(num_of_jets):
+    if 
     Jet_old_dict[j+1] = JetType()
 #--------------------------------
+"""
 
 #-------------------------------------
 cs = {}
@@ -85,8 +108,13 @@ for j in range(num_of_jets):
                                   a +\
                                   '(' + prs + cs['eta_L'] + a + prs + cs['eta_U'] + ')'
 
-print condition_str_dict[1]
+if cut_on == 1:
+    print condition_str_dict[1]
+elif cut_on == 0:
+    print 'no cut applied~'
 #---------------------------------------------------------------------------------------------------------------------------------
+
+
 
 """
 #------------------------------------------------------------------------------------------------------
@@ -100,7 +128,17 @@ for s in a:
 """
 
 #-----------------------------------------------------------------------------------------------------------
-def skim(name):
+def skim_c( name , newFileName ):
+    #--------------------------------
+    Jet_old_dict = {}
+    for j in range(num_of_jets):
+        #if 'ctauS' in name: 
+        Jet_old_dict[j+1] = JetType()
+        #if 'ctauS' in name:
+        if NJT ==1:
+            Jet_old_dict[j+1] = JetTypeSgn()
+    #--------------------------------
+
     print 'filename:', name
 
     oldFile = TFile(name, "READ")
@@ -108,7 +146,10 @@ def skim(name):
     #locate and register the Jet branches of the old ttree
     #oldTree.SetBranchAddress("Jet1", AddressOf(Jet1o, 'pt') ); 
     for j in range(num_of_jets):
-        oldTree.SetBranchAddress( 'Jet' + str(j+1) , AddressOf(Jet_old_dict[j+1], 'pt') );
+        if 'QCD' in name:
+            oldTree.SetBranchAddress( 'Jet' + str(j+1) , AddressOf(Jet_old_dict[j+1], 'pt') );
+        elif 'ctauS' in name:
+            oldTree.SetBranchAddress( 'MatchedJet' + str(j+1) , AddressOf(Jet_old_dict[j+1], 'pt') );
 
     print 'skimming file',oldFile.GetName(),'\tevents =',oldTree.GetEntries(),'\tweight =',oldTree.GetWeight()
 
@@ -166,6 +207,9 @@ def skim(name):
             newTree.Fill()
         """    
         for j in range(num_of_jets):
+            if cut_on == 0:
+                condition_str_dict[j+1] = '1'
+ 
             if eval( condition_str_dict[j+1] ):
                 Jets1.pt    = Jet_old_dict[j+1].pt
                 Jets1.eta   = Jet_old_dict[j+1].eta
@@ -207,6 +251,25 @@ def skim(name):
     newFile.Close() 
     oldFile.Close()
 #-----------------------------------------------------------------------------------------------------------
+
+
+#-----------===============================
+def skim(names):
+    if 1: #ct_dep == 0:
+        for cc in channel:
+            if 'QCD' in channel[cc]:
+                nFn = channel[cc].replace('.root','_1j_skimed.root')
+            elif 'ctauS' in channel[cc]:
+                nFn = channel[cc].replace('.root','_4mj_skimed.root')
+            ss = path + channel[cc]    
+            skim_c(ss,nFn)
+
+    """
+    elif ct_dep == 1:
+        for cc in channel:
+    """
+#-----------===============================
+
 
 #=====================================================================================================
 os.chdir(args1)
